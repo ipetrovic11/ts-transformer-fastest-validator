@@ -287,6 +287,10 @@ function convertEnum(type: ts.EnumType, typeChecker: ts.TypeChecker,
                 .map((type) => parseLiteral(type, typeChecker, node, factory))
         )));
 
+        if (history.size === 0) {
+            properties.push(factory.createPropertyAssignment('$$root', factory.createTrue()));
+        }
+
         return factory.createObjectLiteralExpression(properties);
 }
 
@@ -325,6 +329,9 @@ function convertUnion(type: ts.Type, typeChecker: ts.TypeChecker,
 
             return result;
         }
+        
+        // Creating annonimous history for case when multi is root
+        history.add(undefined);
         
         return factory.createArrayLiteralExpression(types
             .map((type) => {

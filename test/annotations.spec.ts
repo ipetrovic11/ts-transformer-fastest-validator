@@ -5,9 +5,9 @@ const v = new Validator();
 
 import { convertToSchema } from '../index';
 import { IExternal } from './interfaces';
-import { IEmail, IDate, IUrl, IUUID } from '../predefined';
+import { IDate } from '../predefined';
 
-describe("Local annotations", () => {
+describe("Annotations", () => {
     it("Root object annotation", () => {
 
         /**
@@ -37,6 +37,20 @@ describe("Local annotations", () => {
                 type: 'string'
             }
         });
+
+        /**
+         * @$$strict remove
+         */
+         type TestType = {
+            property: string;
+        }
+
+        expect(convertToSchema<TestType>()).toStrictEqual({
+            $$strict: 'remove',
+            property: {
+                type: 'string'
+            }
+        });
     });
 
     it("Property annotation", () => {
@@ -61,6 +75,19 @@ describe("Local annotations", () => {
             property: IDate;
         }
         expect(convertToSchema<IAnnotated2>()).toStrictEqual({
+            property: {
+                type: 'date',
+                convert: true,
+            }
+        });
+
+        type TestType = {
+            /**
+             * @convert true
+             */
+            property: IDate;
+        }
+        expect(convertToSchema<TestType>()).toStrictEqual({
             property: {
                 type: 'date',
                 convert: true,
