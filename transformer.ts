@@ -1,14 +1,14 @@
 import * as ts from 'typescript';
 
 const predefined: { [name: string]: string } = {
-    ICurrency: 'currency',
-    IDate: 'date',
-    IEmail: 'email',
-    IForbidden: 'forbidden',
-    IMac: 'mac',
-    IUrl: 'url',
-    IUUID: 'uuid',
-    IObjectID: 'objectID',
+    ICurrency: 'currency',  // https://github.com/icebob/fastest-validator#currency
+    IDate: 'date',          // https://github.com/icebob/fastest-validator#date
+    IEmail: 'email',        // https://github.com/icebob/fastest-validator#email
+    IForbidden: 'forbidden',// https://github.com/icebob/fastest-validator#forbidden
+    IMac: 'mac',            // https://github.com/icebob/fastest-validator#mac
+    IUrl: 'url',            // https://github.com/icebob/fastest-validator#url
+    IUUID: 'uuid',          // https://github.com/icebob/fastest-validator#uuid
+    IObjectID: 'objectID',  // https://github.com/icebob/fastest-validator#objectid
 };
 
 /**
@@ -65,7 +65,7 @@ function convert(type: ts.Type, typeChecker: ts.TypeChecker,
         // Convert literals like true/false/1/20/'example'
         result = convertLiteral(type, typeChecker, node, factory, history);
 
-    } else if (name && predefined[name]) {
+    } else if (name && predefined.hasOwnProperty(name)) {
         // Convert Enum
         result = convertPredefined(type, typeChecker, node, factory, history);
 
@@ -354,7 +354,7 @@ function convertIntersection(type: ts.Type, typeChecker: ts.TypeChecker,
 
         // Resolve properties for each type
         types.reverse().forEach((type) => {
-            const name = (type as ts.ObjectType).symbol.name;
+            const name = (type as ts.ObjectType).symbol?.name;
 
             history.add(name);
             typeChecker.getPropertiesOfType(type)
@@ -363,6 +363,13 @@ function convertIntersection(type: ts.Type, typeChecker: ts.TypeChecker,
                     return !!propertyType;
                 })
                 .forEach((property) => {
+
+                    if(type.flags & ts.TypeFlags.StringLike ||
+                        type.flags & ts.TypeFlags.NumberLike ||
+                        type.flags & ts.TypeFlags.BooleanLike || 
+                        type.flags & ts.TypeFlags.Literal ) {
+                        throw new Error('Can\'t intersect literal or primitive!')
+                    }
 
                     // Ignor duplicated/overriden props
                     if(propsRegistry.has(property.name)) {
