@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "strict": true,
+    "suppressImplicitAnyIndexErrors": true,
+    "noEmitOnError": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "plugins": [
+      { "transform": "./transformer" }
+    ]
+  },
+  "include": [
+    "test/*.spec.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

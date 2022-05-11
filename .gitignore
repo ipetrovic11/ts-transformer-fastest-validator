@@ -1,0 +1,9 @@
+*.js
+
+npm-debug.log*
+node_modules
+
+!jest.config.js
+coverage
+
+.DS_Store

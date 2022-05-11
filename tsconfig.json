@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "strict": true,
+    "noEmitOnError": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": [
+    "index.ts",
+    "transformer.ts",
+    "predefined.d.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
