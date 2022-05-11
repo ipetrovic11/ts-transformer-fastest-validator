@@ -138,4 +138,40 @@ describe("Interfaces", () => {
         expect(v.validate({ a: 'string', b: 2 }, convertToSchema<ITemplate<number>>())).toBeInstanceOf(Array);
         expect(v.validate({ a: 2, b: 'string' }, convertToSchema<ITemplate<number>>())).toBeInstanceOf(Array);
     });
+
+    it("Extended interface", () => {
+        interface IInterface1 {
+            a: number;
+        }
+
+        interface ITest extends IInterface1 {
+            b: string;
+        }
+
+        expect(v.validate({a: 1, b: 'string'}, convertToSchema<ITest>())).toBe(true);
+
+        expect(v.validate({ a: 1 }, convertToSchema<ITest>())).toBeInstanceOf(Array);
+        expect(v.validate({ b: 'string' }, convertToSchema<ITest>())).toBeInstanceOf(Array);
+        expect(v.validate({ a: 1, b: 2 }, convertToSchema<ITest>())).toBeInstanceOf(Array);
+        expect(v.validate({ a: 'string', b: 'string' }, convertToSchema<ITest>())).toBeInstanceOf(Array);
+    });
+
+    it("Overriden interface", () => {
+        interface IInterface1 {
+            a: number;
+            b: number;
+        }
+
+        interface ITest extends IInterface1 {
+            b: any;
+        }
+
+        expect(v.validate({a: 1, b: 1 }, convertToSchema<ITest>())).toBe(true);
+        expect(v.validate({a: 1, b: 'string'}, convertToSchema<ITest>())).toBe(true);
+        expect(v.validate({a: 1, b: true }, convertToSchema<ITest>())).toBe(true);
+
+        expect(v.validate({ a: 1 }, convertToSchema<ITest>())).toBeInstanceOf(Array);
+        expect(v.validate({ b: 'string' }, convertToSchema<ITest>())).toBeInstanceOf(Array);
+        expect(v.validate({ a: 'string', b: 'string' }, convertToSchema<ITest>())).toBeInstanceOf(Array);
+    });
 });
