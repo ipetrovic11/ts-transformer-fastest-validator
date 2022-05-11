@@ -243,6 +243,13 @@ function convertObject(type: ts.Type, typeChecker: ts.TypeChecker,
                 const propertyType = typeChecker.getTypeOfSymbolAtLocation(property, node);
                 const resolvedType = convert(propertyType, typeChecker, node, factory, history);
 
+                // Apply annotations
+                const annotations: ts.JSDocTagInfo[] = property.getJsDocTags() || [];
+                if(annotations.length) {
+                    const resolvedTypeWithAnnotaions = applyJSDoc(annotations, resolvedType as ts.ObjectLiteralExpression, typeChecker, factory)
+                    return factory.createPropertyAssignment(property.name, applyJSDoc(annotations, resolvedTypeWithAnnotaions, typeChecker, factory));
+                }
+
                 return factory.createPropertyAssignment(property.name, resolvedType);
             });
 
@@ -367,7 +374,14 @@ function convertIntersection(type: ts.Type, typeChecker: ts.TypeChecker,
                     const propertyType = typeChecker.getTypeOfSymbolAtLocation(property, node);
                     const resolvedType = convert(propertyType, typeChecker, node, factory, history);
 
+                    // Apply annotations
+                    const annotations: ts.JSDocTagInfo[] = property.getJsDocTags() || [];
+                    if(annotations.length) {
+                        const resolvedTypeWithAnnotaions = applyJSDoc(annotations, resolvedType as ts.ObjectLiteralExpression, typeChecker, factory);
+                        props.push(factory.createPropertyAssignment(property.name, resolvedTypeWithAnnotaions));
+                    } else {
                     props.push(factory.createPropertyAssignment(property.name, resolvedType));
+                    }
                 })
             history.delete(name);
         });

@@ -41,18 +41,60 @@ describe("Local annotations", () => {
 
     it("Property annotation", () => {
 
-        interface IStrict {
+        interface IAnnotated {
             /**
              * @convert true
              */
             property: number;
         }
-
-        expect(convertToSchema<IStrict>()).toStrictEqual({
+        expect(convertToSchema<IAnnotated>()).toStrictEqual({
             property: {
                 type: 'number',
                 convert: true,
             }
+        });
+
+        interface IAnnotated2 {
+            /**
+             * @convert true
+             */
+            property: IDate;
+        }
+        expect(convertToSchema<IAnnotated2>()).toStrictEqual({
+            property: {
+                type: 'date',
+                convert: true,
+            }
+        });
+    });
+
+    it("Intersection annotation", () => {
+
+        interface IAnnotated1 {
+            /**
+             * @convert true
+             */
+            property1: number;
+        }
+
+        interface IAnnotated2 {
+            /**
+             * @min 6
+             */
+            property2: string;
+        }
+
+        expect(convertToSchema<IAnnotated1 & IAnnotated2>()).toStrictEqual({
+            property1: { type: "number", convert: true },
+            property2: { type: "string", min: 6 },
+        });
+    });
+
+    it("External annotation", () => {
+        expect(convertToSchema<IExternal>()).toStrictEqual({
+            str: { type: "string", empty: false, numeric: true },
+            num: { type: "number", positive: true, convert: true },
+            $$strict: true
         });
     });
 });
