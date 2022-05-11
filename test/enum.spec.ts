@@ -24,7 +24,6 @@ describe("Enumerables", () => {
         expect(v.validate('employee1', convertToSchema<UserGroup>())).toBeInstanceOf(Array);
         expect(v.validate('string', convertToSchema<UserGroup>())).toBeInstanceOf(Array);
         expect(v.validate(1, convertToSchema<UserGroup>())).toBeInstanceOf(Array);
-
     });
 
     it("Enum interface", () => {

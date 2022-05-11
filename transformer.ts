@@ -61,12 +61,16 @@ function convert(type: ts.Type, typeChecker: ts.TypeChecker,
     const flags = type.flags;
     const name = (type as ts.ObjectType).symbol?.name;
 
-    if(type.flags & ts.TypeFlags.Literal) {
+    if(type.flags === ts.TypeFlags.Never) {
+        // Convert to never like null, undefined
+        result = convertNever(type, typeChecker, node, factory, history);
+
+    } else if(type.flags & ts.TypeFlags.Literal) {
         // Convert literals like true/false/1/20/'example'
         result = convertLiteral(type, typeChecker, node, factory, history);
 
     } else if (name && predefined.hasOwnProperty(name)) {
-        // Convert Enum
+        // Convert predefined
         result = convertPredefined(type, typeChecker, node, factory, history);
 
     } else if (flags & ts.TypeFlags.EnumLike) {
@@ -185,6 +189,22 @@ function convertAny(type: ts.Type, typeChecker: ts.TypeChecker,
 
         const properties = [];
         properties.push(factory.createPropertyAssignment('type', factory.createStringLiteral('any')));
+        
+        if (history.size === 0) {
+            properties.push(factory.createPropertyAssignment('$$root', factory.createTrue()));
+        }
+    
+        return factory.createObjectLiteralExpression(properties);
+}
+
+/**
+ * Any is converted to https://github.com/icebob/fastest-validator#forbidden
+ */
+ function convertNever(type: ts.Type, typeChecker: ts.TypeChecker, 
+    node: ts.Node, factory: ts.NodeFactory, history: Set<string | undefined>): ts.ObjectLiteralExpression {
+
+        const properties = [];
+        properties.push(factory.createPropertyAssignment('type', factory.createStringLiteral('forbidden')));
         
         if (history.size === 0) {
             properties.push(factory.createPropertyAssignment('$$root', factory.createTrue()));
