@@ -4,8 +4,6 @@ const Validator = require('fastest-validator');
 const v = new Validator();
 
 import { convertToSchema } from '../index';
-import { IExternal } from './interfaces';
-import { IUrl } from '../predefined';
 
 describe("Enumerables", () => {
 
@@ -45,6 +43,28 @@ describe("Enumerables", () => {
         expect(v.validate({ a: 'admin1' }, convertToSchema<IEnumerable>())).toBeInstanceOf(Array);
         expect(v.validate({ b: 'string' }, convertToSchema<IEnumerable>())).toBeInstanceOf(Array);
         expect(v.validate({ a: 1 }, convertToSchema<IEnumerable>())).toBeInstanceOf(Array);
+        expect(v.validate({ a: 1 }, convertToSchema<IEnumerable>())).toBeInstanceOf(Array);
+        expect(v.validate({ a: 'string' }, convertToSchema<IEnumerable>())).toBeInstanceOf(Array);
+    });
+
+    it("Enum interface", () => {
+
+        enum UserGroup {
+            Admin = 'admin',
+            Manager = 'manager',
+            Employee = 'employee'
+        }
+
+        interface IEnumerable {
+            a?: UserGroup;
+        }
+
+        expect(v.validate({ }, convertToSchema<IEnumerable>())).toBe(true);
+        expect(v.validate({ a: 'admin' }, convertToSchema<IEnumerable>())).toBe(true);
+        expect(v.validate({ a: 'manager' }, convertToSchema<IEnumerable>())).toBe(true);
+        expect(v.validate({ a: 'employee' }, convertToSchema<IEnumerable>())).toBe(true);
+
+        expect(v.validate({ a: 'admin1' }, convertToSchema<IEnumerable>())).toBeInstanceOf(Array);
         expect(v.validate({ a: 1 }, convertToSchema<IEnumerable>())).toBeInstanceOf(Array);
         expect(v.validate({ a: 'string' }, convertToSchema<IEnumerable>())).toBeInstanceOf(Array);
     });
