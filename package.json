@@ -29,10 +29,9 @@
     "index.ts",
     "transformer.js",
     "transformer.ts",
-    "predefined.d.ts",
-    "predefined.js"
+    "predefined.d.ts"
   ],
-  "homepage": "https://github.com/ipetrovic11/ts-transformer-json-schema",
+  "homepage": "https://github.com/ipetrovic11/ts-transformer-fastest-validator",
   "devDependencies": {
     "@types/jest": "^27.5.0",
     "@types/node": "^16.11.7",

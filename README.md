@@ -63,10 +63,7 @@ See [ttypescript's README](https://github.com/cevek/ttypescript/blob/master/READ
 
 ### What can be transformed
 
-Currently transformer can handle:
-
 Take a look at [tests](https://github.com/ipetrovic11/ts-transformer-fastest-validator/tree/main/test) for all possibilities.
-All cases from fastest-validator should be covered, if not please report the issue.
 
 # License
 
