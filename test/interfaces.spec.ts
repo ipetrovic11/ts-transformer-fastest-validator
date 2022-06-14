@@ -217,17 +217,32 @@ describe("Interfaces", () => {
         interface IBase {
             a: number;
             b?: string;
+            c: number;
+            d: string;
         }
 
         interface IOmit extends Omit<IBase, 'a' | 'c'> {
         }
 
-        expect(v.validate({ a: 1, b: 'string' }, convertToSchema<IOmit>())).toBe(true);
-        expect(v.validate({ b: 'string' }, convertToSchema<IOmit>())).toBe(true);
-        expect(v.validate({ }, convertToSchema<IOmit>())).toBe(true);
+        expect(v.validate({ a: 1, b: 'string', c: 1, d: 'string' }, convertToSchema<IOmit>())).toBe(true);
+        expect(v.validate({ a: 1, b: 'string', d: 'string' }, convertToSchema<IOmit>())).toBe(true);
+        expect(v.validate({ a: 1, c: 1, d: 'string' }, convertToSchema<IOmit>())).toBe(true);
+        expect(v.validate({ b: 'string', d: 'string' }, convertToSchema<IOmit>())).toBe(true);
+        expect(v.validate({ d: 'string' }, convertToSchema<IOmit>())).toBe(true);
+
+        interface IOmitExtended extends Omit<IBase, 'a' | 'c'> {
+            e: string;
+        }
+
+        expect(v.validate({ a: 1, b: 'string', c: 1, d: 'string', e: 'string' }, convertToSchema<IOmitExtended>())).toBe(true);
+        expect(v.validate({ a: 1, b: 'string', d: 'string', e: 'string' }, convertToSchema<IOmitExtended>())).toBe(true);
+        expect(v.validate({ a: 1, c: 1, d: 'string', e: 'string' }, convertToSchema<IOmitExtended>())).toBe(true);
+        expect(v.validate({ b: 'string', d: 'string', e: 'string' }, convertToSchema<IOmitExtended>())).toBe(true);
+        expect(v.validate({ d: 'string', e: 'string' }, convertToSchema<IOmitExtended>())).toBe(true);
 
         expect(v.validate({ a: 1, b: 2 }, convertToSchema<IOmit>())).toBeInstanceOf(Array);
         expect(v.validate({ b: 1 }, convertToSchema<IOmit>())).toBeInstanceOf(Array);
         expect(v.validate({ b: [{ a: 1, b: 2 }] }, convertToSchema<IOmit>())).toBeInstanceOf(Array);
+        expect(v.validate({ }, convertToSchema<IOmit>())).toBeInstanceOf(Array);
     });
 });
