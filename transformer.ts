@@ -222,6 +222,12 @@ function convertArray(type: ts.Type, typeChecker: ts.TypeChecker,
         const properties = [];
         const types = (type as ts.TypeReference).typeArguments;
 
+        // Creating annonimous history for case when multi is root
+        if (history.size === 0) {
+            properties.push(factory.createPropertyAssignment('$$root', factory.createTrue()));
+            history.add(undefined);
+        }
+        
         if (types && types.length && 
             !(types[0].flags & ts.TypeFlags.Any)) {
                 // Convert regular arrays

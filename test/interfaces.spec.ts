@@ -174,4 +174,23 @@ describe("Interfaces", () => {
         expect(v.validate({ b: 'string' }, convertToSchema<ITest>())).toBeInstanceOf(Array);
         expect(v.validate({ a: 'string', b: 'string' }, convertToSchema<ITest>())).toBeInstanceOf(Array);
     });
+
+    it("Array of basic interface", () => {
+
+        interface IBase {
+            a: number;
+            b: string;
+        }
+
+        interface IArray {
+            a: IBase[]
+        }
+
+        expect(v.validate({ a: [{ a: 1, b: 'string' }] }, convertToSchema<IArray>())).toBe(true);
+
+        expect(v.validate({ a: 1, b: 2 }, convertToSchema<IBase[]>())).toBeInstanceOf(Array);
+        expect(v.validate({ b: 'string' }, convertToSchema<IBase[]>())).toBeInstanceOf(Array);
+        expect(v.validate({ a: 1 }, convertToSchema<IBase[]>())).toBeInstanceOf(Array);
+        expect(v.validate({ a: [{ a: 1, b: 2 }] }, convertToSchema<IArray>())).toBeInstanceOf(Array);
+    });
 });

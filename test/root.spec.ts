@@ -98,4 +98,15 @@ describe("Root elements", () => {
         expect(v.validate(1, convertToSchema<IUrl>())).toBeInstanceOf(Array);
         expect(v.validate('www.facebook.com', convertToSchema<IUrl>())).toBeInstanceOf(Array);
     });
+
+    it("Array root", () => {
+        expect(v.validate(['test', 'test2'], convertToSchema<string[]>())).toBe(true);
+
+        expect(v.validate('string', convertToSchema<string[]>())).toBeInstanceOf(Array);
+        expect(v.validate(true, convertToSchema<string[]>())).toBeInstanceOf(Array);
+        expect(v.validate(1, convertToSchema<string[]>())).toBeInstanceOf(Array);
+        expect(v.validate('www.facebook.com', convertToSchema<string[]>())).toBeInstanceOf(Array);
+        expect(v.validate(['string', 1], convertToSchema<string[]>())).toBeInstanceOf(Array);
+        expect(v.validate(['string', { type: 'string' }], convertToSchema<string[]>())).toBeInstanceOf(Array);
+    });
 });
