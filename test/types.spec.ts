@@ -78,11 +78,23 @@ describe("Types", () => {
         expect(v.validate({ a: { str: '111', num: 'string' } }, convertToSchema<TestType>())).toBeInstanceOf(Array);
     });
 
-    it("predefined in type", () => {
+    it("Predefined in type", () => {
 
         type TestType = { a: IUrl; };
 
         expect(v.validate({ a: 'https://www.google.com' }, convertToSchema<TestType>())).toBe(true);
+
+        expect(v.validate({ a: 1 }, convertToSchema<TestType>())).toBeInstanceOf(Array);
+        expect(v.validate({ b: 1 }, convertToSchema<TestType>())).toBeInstanceOf(Array);
+        expect(v.validate({ b: 'string' }, convertToSchema<TestType>())).toBeInstanceOf(Array);
+        expect(v.validate({ a: 'string', b: 'string' }, convertToSchema<TestType>())).toBeInstanceOf(Array);
+    });
+
+    it("Buffer in type", () => {
+
+        type TestType = { a: Buffer; };
+
+        expect(v.validate({ a: Buffer.from([1, 2, 3]) }, convertToSchema<TestType>())).toBe(true);
 
         expect(v.validate({ a: 1 }, convertToSchema<TestType>())).toBeInstanceOf(Array);
         expect(v.validate({ b: 1 }, convertToSchema<TestType>())).toBeInstanceOf(Array);

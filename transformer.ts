@@ -61,11 +61,11 @@ function convert(type: ts.Type, typeChecker: ts.TypeChecker,
     const flags = type.flags;
     const name = (type as ts.ObjectType).symbol?.name;
 
-    if(type.flags === ts.TypeFlags.Never) {
+    if(flags === ts.TypeFlags.Never) {
         // Convert to never like null, undefined
         result = convertNever(type, typeChecker, node, factory, history);
 
-    } else if(type.flags & ts.TypeFlags.Literal) {
+    } else if(flags & ts.TypeFlags.Literal) {
         // Convert literals like true/false/1/20/'example'
         result = convertLiteral(type, typeChecker, node, factory, history);
 
@@ -73,13 +73,17 @@ function convert(type: ts.Type, typeChecker: ts.TypeChecker,
         // Convert predefined
         result = convertPredefined(type, typeChecker, node, factory, history);
 
+    } else if (name && name === 'Buffer') {
+        // Convert buffer
+        result = convertBuffer(type, typeChecker, node, factory, history);
+
     } else if (flags & ts.TypeFlags.EnumLike) {
         // Convert Enum
         result = convertEnum(type, typeChecker, node, factory, history);
 
-    } else if (type.flags & ts.TypeFlags.StringLike ||
-        type.flags & ts.TypeFlags.NumberLike ||
-        type.flags & ts.TypeFlags.BooleanLike) {
+    } else if (flags & ts.TypeFlags.StringLike ||
+        flags & ts.TypeFlags.NumberLike ||
+        flags & ts.TypeFlags.BooleanLike) {
             // Convert primitive types like number/string/boolean
             result = convertPrimitive(type, typeChecker, node, factory, history);
 
@@ -152,6 +156,24 @@ function convertPredefined(type: ts.Type, typeChecker: ts.TypeChecker,
         const properties = [];
 
         properties.push(factory.createPropertyAssignment('type', factory.createStringLiteral(predefined[name])));
+
+        if (history.size === 0) {
+            properties.push(factory.createPropertyAssignment('$$root', factory.createTrue()));
+        }
+
+        return factory.createObjectLiteralExpression(properties);
+}
+
+/**
+ * Instance of class Buffer
+ */
+ function convertBuffer(type: ts.Type, typeChecker: ts.TypeChecker, 
+    node: ts.Node, factory: ts.NodeFactory, history: Set<string | undefined>): ts.ObjectLiteralExpression {
+
+        const properties = [];
+
+        properties.push(factory.createPropertyAssignment('type', factory.createStringLiteral('class')));
+        properties.push(factory.createPropertyAssignment('instanceOf', factory.createIdentifier('Buffer')));
 
         if (history.size === 0) {
             properties.push(factory.createPropertyAssignment('$$root', factory.createTrue()));
