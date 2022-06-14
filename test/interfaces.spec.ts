@@ -188,9 +188,46 @@ describe("Interfaces", () => {
 
         expect(v.validate({ a: [{ a: 1, b: 'string' }] }, convertToSchema<IArray>())).toBe(true);
 
-        expect(v.validate({ a: 1, b: 2 }, convertToSchema<IBase[]>())).toBeInstanceOf(Array);
-        expect(v.validate({ b: 'string' }, convertToSchema<IBase[]>())).toBeInstanceOf(Array);
-        expect(v.validate({ a: 1 }, convertToSchema<IBase[]>())).toBeInstanceOf(Array);
+        expect(v.validate({ a: 1, b: 2 }, convertToSchema<IArray>())).toBeInstanceOf(Array);
+        expect(v.validate({ b: 'string' }, convertToSchema<IArray>())).toBeInstanceOf(Array);
+        expect(v.validate({ a: 1 }, convertToSchema<IArray>())).toBeInstanceOf(Array);
         expect(v.validate({ a: [{ a: 1, b: 2 }] }, convertToSchema<IArray>())).toBeInstanceOf(Array);
+    });
+
+    it("Omit property of interface", () => {
+
+        interface IBase {
+            a: number;
+            b: string;
+        }
+
+        interface IOmit extends Omit<IBase, 'a' | 'c'> {
+        }
+
+        expect(v.validate({ a: 1, b: 'string' }, convertToSchema<IOmit>())).toBe(true);
+        expect(v.validate({ b: 'string' }, convertToSchema<IOmit>())).toBe(true);
+
+        expect(v.validate({ a: 1, b: 2 }, convertToSchema<IOmit>())).toBeInstanceOf(Array);
+        expect(v.validate({ a: 1 }, convertToSchema<IOmit>())).toBeInstanceOf(Array);
+        expect(v.validate({ a: [{ a: 1, b: 2 }] }, convertToSchema<IOmit>())).toBeInstanceOf(Array);
+    });
+
+    it("Omit property of interface with optional", () => {
+
+        interface IBase {
+            a: number;
+            b?: string;
+        }
+
+        interface IOmit extends Omit<IBase, 'a' | 'c'> {
+        }
+
+        expect(v.validate({ a: 1, b: 'string' }, convertToSchema<IOmit>())).toBe(true);
+        expect(v.validate({ b: 'string' }, convertToSchema<IOmit>())).toBe(true);
+        expect(v.validate({ }, convertToSchema<IOmit>())).toBe(true);
+
+        expect(v.validate({ a: 1, b: 2 }, convertToSchema<IOmit>())).toBeInstanceOf(Array);
+        expect(v.validate({ b: 1 }, convertToSchema<IOmit>())).toBeInstanceOf(Array);
+        expect(v.validate({ b: [{ a: 1, b: 2 }] }, convertToSchema<IOmit>())).toBeInstanceOf(Array);
     });
 });
