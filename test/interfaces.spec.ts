@@ -46,6 +46,25 @@ describe("Interfaces", () => {
         expect(v.validate({ a: 1 }, convertToSchema<IBase>())).toBeInstanceOf(Array);
     });
 
+    it("Interface with optional any", () => {
+
+        interface ITest {
+            a: string;
+            b: any;
+            c?: any;
+        }
+
+        expect(v.validate({ a: 'string', b: 1 }, convertToSchema<ITest>())).toBe(true);
+        expect(v.validate({ a: 'string', b: 'string' }, convertToSchema<ITest>())).toBe(true);
+        expect(v.validate({ a: 'string', b: false }, convertToSchema<ITest>())).toBe(true);
+        expect(v.validate({ a: 'string', b: false, c: 1 }, convertToSchema<ITest>())).toBe(true);
+
+        expect(v.validate({ a: 1, b: 2 }, convertToSchema<ITest>())).toBeInstanceOf(Array);
+        expect(v.validate({ b: 'string' }, convertToSchema<ITest>())).toBeInstanceOf(Array);
+        expect(v.validate({ a: 1 }, convertToSchema<ITest>())).toBeInstanceOf(Array);
+        expect(v.validate({ a: [{ a: 1, b: 2 }] }, convertToSchema<ITest>())).toBeInstanceOf(Array);
+    });
+
     it("Interface with predefined", () => {
 
         interface IBase {
