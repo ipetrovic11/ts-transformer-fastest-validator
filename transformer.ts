@@ -1,4 +1,5 @@
 import * as ts from 'typescript';
+import { isArrayBufferView } from 'util/types';
 
 const predefined: { [name: string]: string } = {
     ICurrency: 'currency',  // https://github.com/icebob/fastest-validator#currency
@@ -61,7 +62,9 @@ function convert(type: ts.Type, typeChecker: ts.TypeChecker,
     const flags = type.flags;
     const name = (type as ts.ObjectType).symbol?.name;
 
-    if(flags === ts.TypeFlags.Never) {
+    if(flags === ts.TypeFlags.Never || 
+        flags === ts.TypeFlags.Undefined ||
+        flags === ts.TypeFlags.Null) {
         // Convert to never like null, undefined
         result = convertNever(type, typeChecker, node, factory, history);
 
@@ -355,11 +358,18 @@ function convertUnion(type: ts.Type, typeChecker: ts.TypeChecker,
 
         // Ignoring undefined as a type as it represents optional type
         let optional = false;
+        let nullable = false;
         const types = unionType.types.filter((type) => {
             if(type.flags & ts.TypeFlags.Undefined) {
                 optional = true;
                 return false;
             }
+
+            if(type.flags & ts.TypeFlags.Null) {
+                nullable = true;
+                return false;
+            }
+
             return true;
         });
 
@@ -371,12 +381,16 @@ function convertUnion(type: ts.Type, typeChecker: ts.TypeChecker,
             });
 
         if(allLiterals) {
-            const result = (types.length === 1)
+            let result: any = (types.length === 1)
                 ? convertLiteral(types[0], typeChecker, node, factory, history)
                 : convertEnum(type, typeChecker, node, factory, history);
 
             if(optional) {
-                return applyOptional(result, factory);
+                result = applyOptional(result, factory);
+            }
+
+            if(nullable) {
+                result = applyNullable(result, factory);
             }
 
             return result;
@@ -384,17 +398,38 @@ function convertUnion(type: ts.Type, typeChecker: ts.TypeChecker,
         
         // Creating annonimous history for case when multi is root
         history.add(undefined);
-        
-        return factory.createArrayLiteralExpression(types
-            .map((type) => {
-                const result: any = convert(type, typeChecker, node, factory, history);
-                if(optional) {
-                    return applyOptional(result, factory);
-                }
 
-                return result;
+
+        // In case of optional or nullable it is possible to stay with only one element
+        if (types.length === 1) {
+            let result: any = convert(types[0], typeChecker, node, factory, history);
+    
+            if(optional) {
+                result = applyOptional(result, factory);
             }
-        ));
+
+            if(nullable) {
+                result = applyNullable(result, factory);
+            }
+
+            return result;
+        } else {
+            return factory.createArrayLiteralExpression(types
+                .map((type) => {
+                    let result: any = convert(type, typeChecker, node, factory, history);
+    
+                    if(optional) {
+                        result = applyOptional(result, factory);
+                    }
+        
+                    if(nullable) {
+                        result = applyNullable(result, factory);
+                    }
+    
+                    return result;
+                }
+            ));
+        }
 }
 
 /**
@@ -473,6 +508,25 @@ function applyOptional(type: ts.ObjectLiteralExpression | ts.ArrayLiteralExpress
             return factory.updateObjectLiteralExpression(type, [
                 ... type.properties,
                 factory.createPropertyAssignment('optional', factory.createTrue())
+            ]);
+        } else if(ts.isArrayLiteralExpression(type)) {
+            return factory.updateArrayLiteralExpression(type, type.elements.map((element: any) => {
+                return applyOptional(element, factory)
+            }));
+        }
+        
+        return type;
+}
+
+/**
+ * Adds nullable property to an object or an array of objects
+ */
+ function applyNullable(type: ts.ObjectLiteralExpression | ts.ArrayLiteralExpression, 
+    factory: ts.NodeFactory): ts.ObjectLiteralExpression | ts.ArrayLiteralExpression {
+        if(ts.isObjectLiteralExpression(type)) {
+            return factory.updateObjectLiteralExpression(type, [
+                ... type.properties,
+                factory.createPropertyAssignment('nullable', factory.createTrue())
             ]);
         } else if(ts.isArrayLiteralExpression(type)) {
             return factory.updateArrayLiteralExpression(type, type.elements.map((element: any) => {
