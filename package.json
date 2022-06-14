@@ -1,6 +1,6 @@
 {
   "name": "ts-transformer-fastest-validator",
-  "version": "1.12.1",
+  "version": "1.12.2",
   "description": "TypeScript transformer converting types to fastest-validator schema.",
   "main": "index.js",
   "scripts": {
