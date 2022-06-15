@@ -52,6 +52,21 @@ describe("Unions", () => {
         expect(v.validate({ a: 'string' }, convertToSchema<IBase1 | IBase2>())).toBeInstanceOf(Array);
     });
 
+    it("Union with optional any", () => {
+
+        interface IBase1 {
+            a?: any;
+        }
+
+        interface IBase2 {
+            b: string;
+        }
+
+        expect(v.validate({ }, convertToSchema<IBase1 | IBase2>())).toBe(true);
+        expect(v.validate({ a: 1 }, convertToSchema<IBase1 | IBase2>())).toBe(true);
+        expect(v.validate({ b: 'string' }, convertToSchema<IBase1 | IBase2>())).toBe(true);
+    });
+
     it("Union with external with annotations", () => {
 
         interface IBase1 {

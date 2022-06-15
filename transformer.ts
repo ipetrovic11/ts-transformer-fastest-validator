@@ -473,16 +473,20 @@ function convertIntersection(type: ts.Type, typeChecker: ts.TypeChecker,
                     }
 
                     const propertyType = typeChecker.getTypeOfSymbolAtLocation(property, node);
-                    const resolvedType = convert(propertyType, typeChecker, node, factory, history);
+                    let resolvedType = convert(propertyType, typeChecker, node, factory, history);
 
                     // Apply annotations
                     const annotations: ts.JSDocTagInfo[] = property.getJsDocTags() || [];
                     if(annotations.length) {
-                        const resolvedTypeWithAnnotaions = applyJSDoc(annotations, resolvedType as ts.ObjectLiteralExpression, typeChecker, factory);
-                        props.push(factory.createPropertyAssignment(property.name, resolvedTypeWithAnnotaions));
-                    } else {
-                    props.push(factory.createPropertyAssignment(property.name, resolvedType));
+                        resolvedType = applyJSDoc(annotations, resolvedType as ts.ObjectLiteralExpression, typeChecker, factory);
                     }
+
+                    // Apply optional via questionToken
+                    if(property.declarations && property.declarations[0] && (property.declarations[0] as ts.ParameterDeclaration).questionToken) {
+                        resolvedType = applyOptional(resolvedType as any, factory);
+                    }
+                        
+                    props.push(factory.createPropertyAssignment(property.name, resolvedType));
                 })
             history.delete(name);
         });

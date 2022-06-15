@@ -41,6 +41,23 @@ describe("Intersections", () => {
         expect(v.validate({ a: 1 }, convertToSchema<IBase1 & IBase2>())).toBeInstanceOf(Array);
     });
 
+    it("Intersection with optional any", () => {
+
+        interface IBase1 {
+            a?: any;
+        }
+
+        interface IBase2 {
+            b: string;
+        }
+
+        expect(v.validate({ a: 1, b: 'string' }, convertToSchema<IBase1 & IBase2>())).toBe(true);
+        expect(v.validate({ b: 'string' }, convertToSchema<IBase1 & IBase2>())).toBe(true);
+
+        expect(v.validate({ a: 1, b: 2 }, convertToSchema<IBase1 & IBase2>())).toBeInstanceOf(Array);
+        expect(v.validate({ a: 1 }, convertToSchema<IBase1 & IBase2>())).toBeInstanceOf(Array);
+    });
+
     it("Intersection of external with annotations and optional", () => {
 
         interface IBase1 {
