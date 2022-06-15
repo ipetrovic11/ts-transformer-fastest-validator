@@ -509,6 +509,16 @@ function convertIntersection(type: ts.Type, typeChecker: ts.TypeChecker,
 function applyOptional(type: ts.ObjectLiteralExpression | ts.ArrayLiteralExpression, 
     factory: ts.NodeFactory): ts.ObjectLiteralExpression | ts.ArrayLiteralExpression {
         if(ts.isObjectLiteralExpression(type)) {
+
+            const exists = type.properties.find(one => {
+                const name = (one.name as ts.Identifier);
+                return name?.escapedText === 'optional';
+            });
+
+            if(exists) {
+                return type;
+            }
+
             return factory.updateObjectLiteralExpression(type, [
                 ... type.properties,
                 factory.createPropertyAssignment('optional', factory.createTrue())
@@ -528,6 +538,16 @@ function applyOptional(type: ts.ObjectLiteralExpression | ts.ArrayLiteralExpress
  function applyNullable(type: ts.ObjectLiteralExpression | ts.ArrayLiteralExpression, 
     factory: ts.NodeFactory): ts.ObjectLiteralExpression | ts.ArrayLiteralExpression {
         if(ts.isObjectLiteralExpression(type)) {
+
+            const exists = type.properties.find(one => {
+                const name = (one.name as ts.Identifier);
+                return name?.escapedText === 'nullable';
+            });
+
+            if(exists) {
+                return type;
+            }
+
             return factory.updateObjectLiteralExpression(type, [
                 ... type.properties,
                 factory.createPropertyAssignment('nullable', factory.createTrue())
