@@ -437,70 +437,88 @@ function convertUnion(type: ts.Type, typeChecker: ts.TypeChecker,
  */
 function convertIntersection(type: ts.Type, typeChecker: ts.TypeChecker, 
     node: ts.Node, factory: ts.NodeFactory, history: Set<string | undefined>): ts.ObjectLiteralExpression {
+    const size = history.size;
 
-        const size = history.size;
+    const unionType = type as ts.UnionOrIntersectionType;
+    const types = unionType.types || [];
 
-        const unionType = type as ts.UnionOrIntersectionType;
-        const types = unionType.types || [];
+    const propsRegistry = new Map<string, ts.Symbol[]>();
 
-        const props: ts.PropertyAssignment[] = [];
-        const propsRegistry = new Set<string>();
-
-        // Resolve properties for each type
-        types.reverse().forEach((type) => {
-            const name = (type as ts.ObjectType).symbol?.name;
-
-            history.add(name);
-            typeChecker.getPropertiesOfType(type)
-                .filter((property: ts.Symbol) => {
-                    const propertyType = typeChecker.getTypeOfSymbolAtLocation(property, node);
-                    return !!propertyType;
-                })
-                .forEach((property) => {
-
-                    if(type.flags & ts.TypeFlags.StringLike ||
-                        type.flags & ts.TypeFlags.NumberLike ||
-                        type.flags & ts.TypeFlags.BooleanLike || 
-                        type.flags & ts.TypeFlags.Literal ) {
-                        throw new Error('Can\'t intersect literal or primitive!')
-                    }
-
-                    // Ignor duplicated/overriden props
-                    if(propsRegistry.has(property.name)) {
-                        return;
-                    } else {
-                        propsRegistry.add(property.name)
-                    }
-
-                    const propertyType = typeChecker.getTypeOfSymbolAtLocation(property, node);
-                    let resolvedType = convert(propertyType, typeChecker, node, factory, history);
-
-                    // Apply annotations
-                    const annotations: ts.JSDocTagInfo[] = property.getJsDocTags() || [];
-                    if(annotations.length) {
-                        resolvedType = applyJSDoc(annotations, resolvedType as ts.ObjectLiteralExpression, typeChecker, factory);
-                    }
-
-                    // Apply optional via questionToken
-                    if(property.declarations && property.declarations[0] && (property.declarations[0] as ts.ParameterDeclaration).questionToken) {
-                        resolvedType = applyOptional(resolvedType as any, factory);
-                    }
-                        
-                    props.push(factory.createPropertyAssignment(property.name, resolvedType));
-                })
-            history.delete(name);
-        });
-
-        if(size === 0) {
-            return factory.createObjectLiteralExpression(props);
-        } else {
-            const properties: ts.PropertyAssignment[] = [];
-
-            properties.push(factory.createPropertyAssignment('type', factory.createStringLiteral('object')));
-            properties.push(factory.createPropertyAssignment('props', factory.createObjectLiteralExpression(props)));
-
-            return factory.createObjectLiteralExpression(properties); 
+    // First, collect all properties from all intersected types
+    types.forEach((type) => {
+        if(type.flags & ts.TypeFlags.StringLike ||
+            type.flags & ts.TypeFlags.NumberLike ||
+            type.flags & ts.TypeFlags.BooleanLike || 
+            type.flags & ts.TypeFlags.Literal ) {
+            throw new Error('Can\'t intersect literal or primitive!')
         }
+
+        const name = (type as ts.ObjectType).symbol?.name;
+        history.add(name);
+        
+        typeChecker.getPropertiesOfType(type)
+            .filter((property: ts.Symbol) => {
+                const propertyType = typeChecker.getTypeOfSymbolAtLocation(property, node);
+                return !!propertyType;
+            })
+            .forEach((property) => {                
+                // Collect properties for each property
+                if (!propsRegistry.has(property.name)) {
+                    propsRegistry.set(property.name, []);
+                }
+                
+                propsRegistry.get(property.name)!.push(property);
+            });
+    });
+
+    // Now process all collected properties
+    const props: ts.PropertyAssignment[] = Array.from(propsRegistry.entries()).map(([name, properties]) => {
+        let resolvedType: ts.PrimaryExpression;
+
+        if (properties.length === 1) {
+            // Single property - convert normally
+            const propertyType = typeChecker.getTypeOfSymbolAtLocation(properties[0], node);
+            resolvedType = convert(propertyType, typeChecker, node, factory, history);
+        } else {
+            // Multiple properties - create intersection between types of property
+            const propType: any = typeChecker.getPropertyOfType(type, name);
+            resolvedType = convert(propType.type, typeChecker, node, factory, history);
+        }
+
+        // Apply any property-level JSDoc annotations if needed
+        const annotations: ts.JSDocTagInfo[] = properties.reduce((result: ts.JSDocTagInfo[], property) => {
+            const docs = property.getJsDocTags() || [];
+            return result.concat(...docs);
+        }, []);
+        if(annotations.length) {
+            resolvedType = applyJSDoc(annotations, resolvedType as ts.ObjectLiteralExpression, typeChecker, factory);
+        }
+
+        // Count how many have optional tag and if all do apply optional
+        const optionalCount = properties.reduce((result, property) => {
+            if(property.declarations && property.declarations[0] && (property.declarations[0] as ts.ParameterDeclaration).questionToken) {
+                return result + 1;
+            }
+            return result;
+        }, 0);
+        if(properties.length === optionalCount) {
+            resolvedType = applyOptional(resolvedType as any, factory);
+        }
+
+        history.delete(name);
+        return factory.createPropertyAssignment(name, resolvedType);
+    });
+
+    if(size === 0) {
+        return factory.createObjectLiteralExpression(props);
+    } else {
+        const properties: ts.PropertyAssignment[] = [];
+
+        properties.push(factory.createPropertyAssignment('type', factory.createStringLiteral('object')));
+        properties.push(factory.createPropertyAssignment('props', factory.createObjectLiteralExpression(props)));
+
+        return factory.createObjectLiteralExpression(properties); 
+    }
 }
 
 /**
