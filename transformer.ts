@@ -759,6 +759,21 @@ function extractJsDocTagInfos(target: ts.Symbol | undefined): ts.JSDocTagInfo[] 
         }
       }
     }
+
+    // Last fallback: parse leading comments for @tag value
+    const sourceFile = decl.getSourceFile();
+    const fullText = sourceFile.getFullText();
+    const ranges = ts.getLeadingCommentRanges(fullText, decl.pos) || [];
+    for (const range of ranges) {
+      const comment = fullText.slice(range.pos, range.end);
+      const regex = /@([\$\w]+)\s+([^\s*]+)/g;
+      let m: RegExpExecArray | null;
+      while ((m = regex.exec(comment))) {
+        const name = m[1];
+        const text = m[2];
+        if (name) collected.push({ name, text });
+      }
+    }
   }
 
   return collected as unknown as ts.JSDocTagInfo[];
