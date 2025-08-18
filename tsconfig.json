@@ -1,18 +1,14 @@
 {
   "compilerOptions": {
     "target": "es6",
+    "lib": ["es2019"],
     "module": "commonjs",
     "strict": true,
+    "types": ["node"],
     "noEmitOnError": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": [
-    "index.ts",
-    "transformer.ts",
-    "predefined.d.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["index.ts", "transformer.ts", "predefined.d.ts"],
+  "exclude": ["node_modules"]
 }
