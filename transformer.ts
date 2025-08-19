@@ -638,19 +638,28 @@ function applyJSDoc(
     .filter((annotation) => (annotation as any).text || (annotation as any).name)
     .map((annotation) => {
       const anyAnno: any = annotation as any;
-      const text = anyAnno.text as unknown as any;
+      const rawText = anyAnno.text as unknown as any;
 
-      const value = Array.isArray(text) ? text[0].text : text;
-      let literalValue: ts.LiteralExpression | ts.TrueLiteral | ts.FalseLiteral;
+      // Normalize TS tag text: it can be string or array of parts
+      const firstPart: any = Array.isArray(rawText) ? (rawText.length ? rawText[0] : undefined) : rawText;
+      const textValue: string = firstPart != null ? String(firstPart.text ?? firstPart) : '';
 
-      if (value === 'true') {
+      let literalValue: ts.Expression;
+      if (textValue === 'true') {
         literalValue = factory.createTrue();
-      } else if (value === 'false') {
+      } else if (textValue === 'false') {
         literalValue = factory.createFalse();
-      } else if (+value) {
-        literalValue = factory.createNumericLiteral(+value);
+      } else if (/^[+-]?\d+(?:\.\d+)?$/.test(textValue)) {
+        const isNegative = textValue.startsWith('-');
+        const absStr = isNegative ? textValue.slice(1) : textValue.startsWith('+') ? textValue.slice(1) : textValue;
+        const numeric = factory.createNumericLiteral(absStr);
+        literalValue = isNegative
+          ? factory.createPrefixUnaryExpression(ts.SyntaxKind.MinusToken, numeric)
+          : textValue.startsWith('+')
+          ? numeric
+          : numeric;
       } else {
-        literalValue = factory.createStringLiteral(value);
+        literalValue = factory.createStringLiteral(textValue);
       }
 
       return factory.createPropertyAssignment(anyAnno.name, literalValue);
@@ -673,12 +682,7 @@ function applyJSDoc(
 /**
  * Parsing means making elements exactly like they should be, without coverting
  */
-function parseLiteralBoolean(
-  type: ts.Type,
-  typeChecker: ts.TypeChecker,
-  node: ts.Node,
-  factory: ts.NodeFactory,
-): ts.StringLiteral | ts.NumericLiteral | ts.TrueLiteral | ts.FalseLiteral {
+function parseLiteralBoolean(type: ts.Type, typeChecker: ts.TypeChecker, node: ts.Node, factory: ts.NodeFactory): ts.Expression {
   const type_string = typeChecker.typeToString(type);
 
   if (type_string === 'true') {
@@ -688,26 +692,25 @@ function parseLiteralBoolean(
   }
 }
 
-function parseLiteral(
-  type: ts.Type,
-  typeChecker: ts.TypeChecker,
-  node: ts.Node,
-  factory: ts.NodeFactory,
-): ts.StringLiteral | ts.NumericLiteral | ts.TrueLiteral | ts.FalseLiteral {
+function parseLiteral(type: ts.Type, typeChecker: ts.TypeChecker, node: ts.Node, factory: ts.NodeFactory): ts.Expression {
   if (type.flags & ts.TypeFlags.BooleanLike) {
     return parseLiteralBoolean(type, typeChecker, node, factory);
   }
-
-  const literalType = type as ts.LiteralType;
+  const literalType = type as any;
   const value = literalType.value;
-
   switch (typeof value) {
     case 'string':
-      return factory.createStringLiteral((type as any).value.toString());
-    case 'number':
-      return factory.createNumericLiteral(+(type as any).value);
+      return factory.createStringLiteral(String(value));
+    case 'number': {
+      const n = Number(value);
+      if (n < 0) {
+        // create negative numbers as prefix unary expression per TS factory requirements
+        return factory.createPrefixUnaryExpression(ts.SyntaxKind.MinusToken, factory.createNumericLiteral(String(Math.abs(n))));
+      }
+      return factory.createNumericLiteral(String(n));
+    }
     default:
-      throw new Error('Unknow literal type ' + value);
+      throw new Error('Unknown literal type ' + value);
   }
 }
 
