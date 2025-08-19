@@ -15,17 +15,40 @@ const predefined: { [name: string]: string } = {
  * Transform logic
  */
 
-export default function transformer(program: ts.Program): ts.TransformerFactory<ts.SourceFile> {
-  return (context: ts.TransformationContext) => (file: ts.SourceFile) => visitEach(file, program, context);
+export default function transformer(
+  program: ts.Program,
+): ts.TransformerFactory<ts.SourceFile> {
+  return (context: ts.TransformationContext) => (file: ts.SourceFile) =>
+    visitEach(file, program, context);
 }
 
-function visitEach(node: ts.SourceFile, program: ts.Program, context: ts.TransformationContext): ts.SourceFile;
-function visitEach(node: ts.Node, program: ts.Program, context: ts.TransformationContext): ts.Node;
-function visitEach(node: ts.Node, program: ts.Program, context: ts.TransformationContext): ts.Node {
-  return ts.visitEachChild(visitNode(node, program, context), (childNode) => visitEach(childNode, program, context), context);
+function visitEach(
+  node: ts.SourceFile,
+  program: ts.Program,
+  context: ts.TransformationContext,
+): ts.SourceFile;
+function visitEach(
+  node: ts.Node,
+  program: ts.Program,
+  context: ts.TransformationContext,
+): ts.Node;
+function visitEach(
+  node: ts.Node,
+  program: ts.Program,
+  context: ts.TransformationContext,
+): ts.Node {
+  return ts.visitEachChild(
+    visitNode(node, program, context),
+    (childNode) => visitEach(childNode, program, context),
+    context,
+  );
 }
 
-function visitNode(node: ts.Node, program: ts.Program, context: ts.TransformationContext): ts.Node {
+function visitNode(
+  node: ts.Node,
+  program: ts.Program,
+  context: ts.TransformationContext,
+): ts.Node {
   // Skip if node is not function call expression
   if (!ts.isCallExpression(node)) {
     return node;
@@ -39,9 +62,19 @@ function visitNode(node: ts.Node, program: ts.Program, context: ts.Transformatio
     const name = declaration.name?.getText();
 
     // If function name is schema and has first type argument process transformation
-    if (name === 'convertToSchema' && node.typeArguments && node.typeArguments[0]) {
+    if (
+      name === 'convertToSchema' &&
+      node.typeArguments &&
+      node.typeArguments[0]
+    ) {
       const type = typeChecker.getTypeFromTypeNode(node.typeArguments[0]);
-      return convert(type, typeChecker, node, context.factory, new Set<string>());
+      return convert(
+        type,
+        typeChecker,
+        node,
+        context.factory,
+        new Set<string>(),
+      );
     }
   }
 
@@ -60,13 +93,22 @@ function convert(
 ): ts.PrimaryExpression {
   // Guard against undefined type in edge cases
   if (!type) {
-    return factory.createObjectLiteralExpression([factory.createPropertyAssignment('type', factory.createStringLiteral('any'))]);
+    return factory.createObjectLiteralExpression([
+      factory.createPropertyAssignment(
+        'type',
+        factory.createStringLiteral('any'),
+      ),
+    ]);
   }
   let result: ts.ArrayLiteralExpression | ts.ObjectLiteralExpression;
   const flags = type.flags;
   const name = (type as ts.ObjectType).symbol?.name;
 
-  if (flags === ts.TypeFlags.Never || flags === ts.TypeFlags.Undefined || flags === ts.TypeFlags.Null) {
+  if (
+    flags === ts.TypeFlags.Never ||
+    flags === ts.TypeFlags.Undefined ||
+    flags === ts.TypeFlags.Null
+  ) {
     // Convert to never like null, undefined
     result = convertNever(type, typeChecker, node, factory, history);
   } else if (flags & ts.TypeFlags.Literal) {
@@ -81,13 +123,20 @@ function convert(
   } else if (flags & ts.TypeFlags.EnumLike) {
     // Convert Enum
     result = convertEnum(type, typeChecker, node, factory, history);
-  } else if (flags & ts.TypeFlags.StringLike || flags & ts.TypeFlags.NumberLike || flags & ts.TypeFlags.BooleanLike) {
+  } else if (
+    flags & ts.TypeFlags.StringLike ||
+    flags & ts.TypeFlags.NumberLike ||
+    flags & ts.TypeFlags.BooleanLike
+  ) {
     // Convert primitive types like number/string/boolean
     result = convertPrimitive(type, typeChecker, node, factory, history);
   } else if (flags === ts.TypeFlags.Any || flags & ts.TypeFlags.VoidLike) {
     // Convert Any
     result = convertAny(type, typeChecker, node, factory, history);
-  } else if (flags === ts.TypeFlags.Object && (typeChecker as any).isArrayType(type)) {
+  } else if (
+    flags === ts.TypeFlags.Object &&
+    (typeChecker as any).isArrayType(type)
+  ) {
     // Convert array
     result = convertArray(type, typeChecker, node, factory, history);
   } else if (flags === ts.TypeFlags.Object) {
@@ -104,7 +153,10 @@ function convert(
   }
 
   // Apply annotations
-  const annotations: ts.JSDocTagInfo[] = [...extractJsDocTagInfos(type.symbol), ...extractJsDocTagInfos(type.aliasSymbol)];
+  const annotations: ts.JSDocTagInfo[] = [
+    ...extractJsDocTagInfos(type.symbol),
+    ...extractJsDocTagInfos(type.aliasSymbol),
+  ];
   if (annotations.length) {
     return applyJSDoc(annotations, result, typeChecker, factory);
   }
@@ -125,12 +177,21 @@ function convertLiteral(
   const properties = [];
   const literalValue = parseLiteral(type, typeChecker, node, factory);
 
-  properties.push(factory.createPropertyAssignment('type', factory.createStringLiteral('equal')));
+  properties.push(
+    factory.createPropertyAssignment(
+      'type',
+      factory.createStringLiteral('equal'),
+    ),
+  );
   properties.push(factory.createPropertyAssignment('value', literalValue));
-  properties.push(factory.createPropertyAssignment('strict', factory.createTrue()));
+  properties.push(
+    factory.createPropertyAssignment('strict', factory.createTrue()),
+  );
 
   if (history.size === 0) {
-    properties.push(factory.createPropertyAssignment('$$root', factory.createTrue()));
+    properties.push(
+      factory.createPropertyAssignment('$$root', factory.createTrue()),
+    );
   }
 
   return factory.createObjectLiteralExpression(properties);
@@ -149,10 +210,17 @@ function convertPredefined(
   const name = (type as ts.ObjectType).symbol.name;
   const properties = [];
 
-  properties.push(factory.createPropertyAssignment('type', factory.createStringLiteral(predefined[name])));
+  properties.push(
+    factory.createPropertyAssignment(
+      'type',
+      factory.createStringLiteral(predefined[name]),
+    ),
+  );
 
   if (history.size === 0) {
-    properties.push(factory.createPropertyAssignment('$$root', factory.createTrue()));
+    properties.push(
+      factory.createPropertyAssignment('$$root', factory.createTrue()),
+    );
   }
 
   return factory.createObjectLiteralExpression(properties);
@@ -170,11 +238,23 @@ function convertBuffer(
 ): ts.ObjectLiteralExpression {
   const properties = [];
 
-  properties.push(factory.createPropertyAssignment('type', factory.createStringLiteral('class')));
-  properties.push(factory.createPropertyAssignment('instanceOf', factory.createIdentifier('Buffer')));
+  properties.push(
+    factory.createPropertyAssignment(
+      'type',
+      factory.createStringLiteral('class'),
+    ),
+  );
+  properties.push(
+    factory.createPropertyAssignment(
+      'instanceOf',
+      factory.createIdentifier('Buffer'),
+    ),
+  );
 
   if (history.size === 0) {
-    properties.push(factory.createPropertyAssignment('$$root', factory.createTrue()));
+    properties.push(
+      factory.createPropertyAssignment('$$root', factory.createTrue()),
+    );
   }
 
   return factory.createObjectLiteralExpression(properties);
@@ -196,10 +276,17 @@ function convertPrimitive(
   const properties = [];
 
   const type_string = typeChecker.typeToString(type);
-  properties.push(factory.createPropertyAssignment('type', factory.createStringLiteral(type_string)));
+  properties.push(
+    factory.createPropertyAssignment(
+      'type',
+      factory.createStringLiteral(type_string),
+    ),
+  );
 
   if (history.size === 0) {
-    properties.push(factory.createPropertyAssignment('$$root', factory.createTrue()));
+    properties.push(
+      factory.createPropertyAssignment('$$root', factory.createTrue()),
+    );
   }
 
   return factory.createObjectLiteralExpression(properties);
@@ -216,10 +303,17 @@ function convertAny(
   history: Set<string | undefined>,
 ): ts.ObjectLiteralExpression {
   const properties = [];
-  properties.push(factory.createPropertyAssignment('type', factory.createStringLiteral('any')));
+  properties.push(
+    factory.createPropertyAssignment(
+      'type',
+      factory.createStringLiteral('any'),
+    ),
+  );
 
   if (history.size === 0) {
-    properties.push(factory.createPropertyAssignment('$$root', factory.createTrue()));
+    properties.push(
+      factory.createPropertyAssignment('$$root', factory.createTrue()),
+    );
   }
 
   return factory.createObjectLiteralExpression(properties);
@@ -236,10 +330,17 @@ function convertNever(
   history: Set<string | undefined>,
 ): ts.ObjectLiteralExpression {
   const properties = [];
-  properties.push(factory.createPropertyAssignment('type', factory.createStringLiteral('forbidden')));
+  properties.push(
+    factory.createPropertyAssignment(
+      'type',
+      factory.createStringLiteral('forbidden'),
+    ),
+  );
 
   if (history.size === 0) {
-    properties.push(factory.createPropertyAssignment('$$root', factory.createTrue()));
+    properties.push(
+      factory.createPropertyAssignment('$$root', factory.createTrue()),
+    );
   }
 
   return factory.createObjectLiteralExpression(properties);
@@ -260,17 +361,34 @@ function convertArray(
 
   // Creating annonimous history for case when multi is root
   if (history.size === 0) {
-    properties.push(factory.createPropertyAssignment('$$root', factory.createTrue()));
+    properties.push(
+      factory.createPropertyAssignment('$$root', factory.createTrue()),
+    );
     history.add(undefined);
   }
 
   if (types && types.length && !(types[0].flags & ts.TypeFlags.Any)) {
     // Convert regular arrays
-    properties.push(factory.createPropertyAssignment('type', factory.createStringLiteral('array')));
-    properties.push(factory.createPropertyAssignment('items', convert(types[0], typeChecker, node, factory, history)));
+    properties.push(
+      factory.createPropertyAssignment(
+        'type',
+        factory.createStringLiteral('array'),
+      ),
+    );
+    properties.push(
+      factory.createPropertyAssignment(
+        'items',
+        convert(types[0], typeChecker, node, factory, history),
+      ),
+    );
   } else {
     // Convert in case of Array<any>, any[]
-    properties.push(factory.createPropertyAssignment('type', factory.createStringLiteral('array')));
+    properties.push(
+      factory.createPropertyAssignment(
+        'type',
+        factory.createStringLiteral('array'),
+      ),
+    );
   }
 
   return factory.createObjectLiteralExpression(properties);
@@ -290,7 +408,12 @@ function convertObject(
   const name = (type as ts.ObjectType).symbol.name;
 
   if (name && name !== '__type' && history.has(name)) {
-    return factory.createObjectLiteralExpression([factory.createPropertyAssignment('type', factory.createStringLiteral('any'))]);
+    return factory.createObjectLiteralExpression([
+      factory.createPropertyAssignment(
+        'type',
+        factory.createStringLiteral('any'),
+      ),
+    ]);
   }
 
   history.add(name);
@@ -298,21 +421,42 @@ function convertObject(
   const props = typeChecker
     .getPropertiesOfType(type)
     .filter((property: ts.Symbol) => {
-      const propertyType = typeChecker.getTypeOfSymbolAtLocation(property, node);
+      const propertyType = typeChecker.getTypeOfSymbolAtLocation(
+        property,
+        node,
+      );
       return !!propertyType;
     })
     .map((property: ts.Symbol) => {
-      const propertyType = typeChecker.getTypeOfSymbolAtLocation(property, node);
-      let resolvedType = convert(propertyType, typeChecker, node, factory, history);
+      const propertyType = typeChecker.getTypeOfSymbolAtLocation(
+        property,
+        node,
+      );
+      let resolvedType = convert(
+        propertyType,
+        typeChecker,
+        node,
+        factory,
+        history,
+      );
 
       // Apply annotations
       const annotations: ts.JSDocTagInfo[] = extractJsDocTagInfos(property);
       if (annotations.length) {
-        resolvedType = applyJSDoc(annotations, resolvedType as ts.ObjectLiteralExpression, typeChecker, factory);
+        resolvedType = applyJSDoc(
+          annotations,
+          resolvedType as ts.ObjectLiteralExpression,
+          typeChecker,
+          factory,
+        );
       }
 
       // Apply optional via questionToken
-      if (property.declarations && property.declarations[0] && (property.declarations[0] as ts.ParameterDeclaration).questionToken) {
+      if (
+        property.declarations &&
+        property.declarations[0] &&
+        (property.declarations[0] as ts.ParameterDeclaration).questionToken
+      ) {
         resolvedType = applyOptional(resolvedType as any, factory);
       }
 
@@ -326,10 +470,20 @@ function convertObject(
   } else {
     const properties: ts.PropertyAssignment[] = [];
 
-    properties.push(factory.createPropertyAssignment('type', factory.createStringLiteral('object')));
+    properties.push(
+      factory.createPropertyAssignment(
+        'type',
+        factory.createStringLiteral('object'),
+      ),
+    );
 
     if (props.length) {
-      properties.push(factory.createPropertyAssignment('props', factory.createObjectLiteralExpression(props)));
+      properties.push(
+        factory.createPropertyAssignment(
+          'props',
+          factory.createObjectLiteralExpression(props),
+        ),
+      );
     }
 
     return factory.createObjectLiteralExpression(properties);
@@ -358,16 +512,37 @@ function convertEnum(
     const props = typeChecker.getPropertiesOfType(type);
     memberTypes = props
       .map((symbol) => typeChecker.getTypeOfSymbolAtLocation(symbol, node))
-      .filter((memberType) => !!(memberType && (memberType.flags & ts.TypeFlags.Literal || memberType.flags & ts.TypeFlags.BooleanLike)));
+      .filter(
+        (memberType) =>
+          !!(
+            memberType &&
+            (memberType.flags & ts.TypeFlags.Literal ||
+              memberType.flags & ts.TypeFlags.BooleanLike)
+          ),
+      );
   }
 
-  const values = memberTypes.filter((t) => !(t.flags & ts.TypeFlags.Undefined)).map((t) => parseLiteral(t, typeChecker, node, factory));
+  const values = memberTypes
+    .filter((t) => !(t.flags & ts.TypeFlags.Undefined))
+    .map((t) => parseLiteral(t, typeChecker, node, factory));
 
-  properties.push(factory.createPropertyAssignment('type', factory.createStringLiteral('enum')));
-  properties.push(factory.createPropertyAssignment('values', factory.createArrayLiteralExpression(values)));
+  properties.push(
+    factory.createPropertyAssignment(
+      'type',
+      factory.createStringLiteral('enum'),
+    ),
+  );
+  properties.push(
+    factory.createPropertyAssignment(
+      'values',
+      factory.createArrayLiteralExpression(values),
+    ),
+  );
 
   if (history.size === 0) {
-    properties.push(factory.createPropertyAssignment('$$root', factory.createTrue()));
+    properties.push(
+      factory.createPropertyAssignment('$$root', factory.createTrue()),
+    );
   }
 
   return factory.createObjectLiteralExpression(properties);
@@ -495,7 +670,10 @@ function convertIntersection(
     typeChecker
       .getPropertiesOfType(type)
       .filter((property: ts.Symbol) => {
-        const propertyType = typeChecker.getTypeOfSymbolAtLocation(property, node);
+        const propertyType = typeChecker.getTypeOfSymbolAtLocation(
+          property,
+          node,
+        );
         return !!propertyType;
       })
       .forEach((property) => {
@@ -509,32 +687,57 @@ function convertIntersection(
   });
 
   // Now process all collected properties
-  const props: ts.PropertyAssignment[] = Array.from(propsRegistry.entries()).map(([name, properties]) => {
+  const props: ts.PropertyAssignment[] = Array.from(
+    propsRegistry.entries(),
+  ).map(([name, properties]) => {
     let resolvedType: ts.PrimaryExpression;
 
     if (properties.length === 1) {
       // Single property - convert normally
-      const propertyType = typeChecker.getTypeOfSymbolAtLocation(properties[0], node);
+      const propertyType = typeChecker.getTypeOfSymbolAtLocation(
+        properties[0],
+        node,
+      );
       resolvedType = convert(propertyType, typeChecker, node, factory, history);
     } else {
       // Multiple properties - merge property type from intersection
       const propSymbol = typeChecker.getPropertyOfType(type, name);
-      const mergedPropertyType = propSymbol ? typeChecker.getTypeOfSymbolAtLocation(propSymbol, node) : undefined;
-      resolvedType = convert(mergedPropertyType as any, typeChecker, node, factory, history);
+      const mergedPropertyType = propSymbol
+        ? typeChecker.getTypeOfSymbolAtLocation(propSymbol, node)
+        : undefined;
+      resolvedType = convert(
+        mergedPropertyType as any,
+        typeChecker,
+        node,
+        factory,
+        history,
+      );
     }
 
     // Apply any property-level JSDoc annotations if needed
-    const annotations: ts.JSDocTagInfo[] = properties.reduce((result: ts.JSDocTagInfo[], property) => {
-      const docs = extractJsDocTagInfos(property);
-      return result.concat(...docs);
-    }, []);
+    const annotations: ts.JSDocTagInfo[] = properties.reduce(
+      (result: ts.JSDocTagInfo[], property) => {
+        const docs = extractJsDocTagInfos(property);
+        return result.concat(...docs);
+      },
+      [],
+    );
     if (annotations.length) {
-      resolvedType = applyJSDoc(annotations, resolvedType as ts.ObjectLiteralExpression, typeChecker, factory);
+      resolvedType = applyJSDoc(
+        annotations,
+        resolvedType as ts.ObjectLiteralExpression,
+        typeChecker,
+        factory,
+      );
     }
 
     // Count how many have optional tag and if all do apply optional
     const optionalCount = properties.reduce((result, property) => {
-      if (property.declarations && property.declarations[0] && (property.declarations[0] as ts.ParameterDeclaration).questionToken) {
+      if (
+        property.declarations &&
+        property.declarations[0] &&
+        (property.declarations[0] as ts.ParameterDeclaration).questionToken
+      ) {
         return result + 1;
       }
       return result;
@@ -552,8 +755,18 @@ function convertIntersection(
   } else {
     const properties: ts.PropertyAssignment[] = [];
 
-    properties.push(factory.createPropertyAssignment('type', factory.createStringLiteral('object')));
-    properties.push(factory.createPropertyAssignment('props', factory.createObjectLiteralExpression(props)));
+    properties.push(
+      factory.createPropertyAssignment(
+        'type',
+        factory.createStringLiteral('object'),
+      ),
+    );
+    properties.push(
+      factory.createPropertyAssignment(
+        'props',
+        factory.createObjectLiteralExpression(props),
+      ),
+    );
 
     return factory.createObjectLiteralExpression(properties);
   }
@@ -635,14 +848,21 @@ function applyJSDoc(
   factory: ts.NodeFactory,
 ): ts.ObjectLiteralExpression | ts.ArrayLiteralExpression {
   const properties: ts.PropertyAssignment[] = annotations
-    .filter((annotation) => (annotation as any).text || (annotation as any).name)
+    .filter(
+      (annotation) => (annotation as any).text || (annotation as any).name,
+    )
     .map((annotation) => {
       const anyAnno: any = annotation as any;
       const rawText = anyAnno.text as unknown as any;
 
       // Normalize TS tag text: it can be string or array of parts
-      const firstPart: any = Array.isArray(rawText) ? (rawText.length ? rawText[0] : undefined) : rawText;
-      const textValue: string = firstPart != null ? String(firstPart.text ?? firstPart) : '';
+      const firstPart: any = Array.isArray(rawText)
+        ? rawText.length
+          ? rawText[0]
+          : undefined
+        : rawText;
+      const textValue: string =
+        firstPart != null ? String(firstPart.text ?? firstPart) : '';
 
       let literalValue: ts.Expression;
       if (textValue === 'true') {
@@ -651,10 +871,17 @@ function applyJSDoc(
         literalValue = factory.createFalse();
       } else if (/^[+-]?\d+(?:\.\d+)?$/.test(textValue)) {
         const isNegative = textValue.startsWith('-');
-        const absStr = isNegative ? textValue.slice(1) : textValue.startsWith('+') ? textValue.slice(1) : textValue;
+        const absStr = isNegative
+          ? textValue.slice(1)
+          : textValue.startsWith('+')
+          ? textValue.slice(1)
+          : textValue;
         const numeric = factory.createNumericLiteral(absStr);
         literalValue = isNegative
-          ? factory.createPrefixUnaryExpression(ts.SyntaxKind.MinusToken, numeric)
+          ? factory.createPrefixUnaryExpression(
+              ts.SyntaxKind.MinusToken,
+              numeric,
+            )
           : textValue.startsWith('+')
           ? numeric
           : numeric;
@@ -666,7 +893,10 @@ function applyJSDoc(
     });
 
   if (ts.isObjectLiteralExpression(type)) {
-    return factory.updateObjectLiteralExpression(type, [...type.properties, ...properties]);
+    return factory.updateObjectLiteralExpression(type, [
+      ...type.properties,
+      ...properties,
+    ]);
   } else if (ts.isArrayLiteralExpression(type)) {
     return factory.updateArrayLiteralExpression(
       type,
@@ -682,7 +912,12 @@ function applyJSDoc(
 /**
  * Parsing means making elements exactly like they should be, without coverting
  */
-function parseLiteralBoolean(type: ts.Type, typeChecker: ts.TypeChecker, node: ts.Node, factory: ts.NodeFactory): ts.Expression {
+function parseLiteralBoolean(
+  type: ts.Type,
+  typeChecker: ts.TypeChecker,
+  node: ts.Node,
+  factory: ts.NodeFactory,
+): ts.Expression {
   const type_string = typeChecker.typeToString(type);
 
   if (type_string === 'true') {
@@ -692,7 +927,12 @@ function parseLiteralBoolean(type: ts.Type, typeChecker: ts.TypeChecker, node: t
   }
 }
 
-function parseLiteral(type: ts.Type, typeChecker: ts.TypeChecker, node: ts.Node, factory: ts.NodeFactory): ts.Expression {
+function parseLiteral(
+  type: ts.Type,
+  typeChecker: ts.TypeChecker,
+  node: ts.Node,
+  factory: ts.NodeFactory,
+): ts.Expression {
   if (type.flags & ts.TypeFlags.BooleanLike) {
     return parseLiteralBoolean(type, typeChecker, node, factory);
   }
@@ -705,7 +945,10 @@ function parseLiteral(type: ts.Type, typeChecker: ts.TypeChecker, node: ts.Node,
       const n = Number(value);
       if (n < 0) {
         // create negative numbers as prefix unary expression per TS factory requirements
-        return factory.createPrefixUnaryExpression(ts.SyntaxKind.MinusToken, factory.createNumericLiteral(String(Math.abs(n))));
+        return factory.createPrefixUnaryExpression(
+          ts.SyntaxKind.MinusToken,
+          factory.createNumericLiteral(String(Math.abs(n))),
+        );
       }
       return factory.createNumericLiteral(String(n));
     }
@@ -714,26 +957,37 @@ function parseLiteral(type: ts.Type, typeChecker: ts.TypeChecker, node: ts.Node,
   }
 }
 
-function extractJsDocTagInfos(target: ts.Symbol | undefined): ts.JSDocTagInfo[] {
+function extractJsDocTagInfos(
+  target: ts.Symbol | undefined,
+): ts.JSDocTagInfo[] {
   if (!target) return [] as unknown as ts.JSDocTagInfo[];
 
   // Try legacy API first
-  const legacy = (target as any).getJsDocTags ? (target as any).getJsDocTags() : undefined;
+  const legacy = (target as any).getJsDocTags
+    ? (target as any).getJsDocTags()
+    : undefined;
   if (Array.isArray(legacy) && legacy.length) {
     return legacy as ts.JSDocTagInfo[];
   }
 
   const collected: Array<{ name: string; text?: string }> = [];
-  const declarations: readonly ts.Declaration[] | undefined = (target as any).declarations;
-  if (!declarations || !declarations.length) return collected as unknown as ts.JSDocTagInfo[];
+  const declarations: readonly ts.Declaration[] | undefined = (target as any)
+    .declarations;
+  if (!declarations || !declarations.length)
+    return collected as unknown as ts.JSDocTagInfo[];
 
   for (const decl of declarations) {
-    const infoTags: any[] = (ts as any).getJSDocTags ? (ts as any).getJSDocTags(decl) : [];
+    const infoTags: any[] = (ts as any).getJSDocTags
+      ? (ts as any).getJSDocTags(decl)
+      : [];
     if (Array.isArray(infoTags) && infoTags.length) {
       for (const info of infoTags) {
         const tagNameNode: any = (info as any).tagName;
         const name: string =
-          (info as any).name || (tagNameNode && (tagNameNode.escapedText as string)) || (tagNameNode && (tagNameNode.text as string)) || '';
+          (info as any).name ||
+          (tagNameNode && (tagNameNode.escapedText as string)) ||
+          (tagNameNode && (tagNameNode.text as string)) ||
+          '';
         const textRawAny: any = (info as any).text ?? (info as any).comment;
         const text: string | undefined = Array.isArray(textRawAny)
           ? textRawAny.length
@@ -755,9 +1009,13 @@ function extractJsDocTagInfos(target: ts.Symbol | undefined): ts.JSDocTagInfo[] 
         for (const t of tagNodes) {
           const tagName: any = t.tagName;
           const name: string =
-            (tagName && (tagName.escapedText as string)) || (tagName && (tagName.text as string)) || ((t as any).name as string) || '';
+            (tagName && (tagName.escapedText as string)) ||
+            (tagName && (tagName.text as string)) ||
+            ((t as any).name as string) ||
+            '';
           const textRaw: any = (t as any).comment;
-          const text: string | undefined = textRaw != null ? String(textRaw) : undefined;
+          const text: string | undefined =
+            textRaw != null ? String(textRaw) : undefined;
           if (name) collected.push({ name, text });
         }
       }
