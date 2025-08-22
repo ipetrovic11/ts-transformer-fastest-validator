@@ -4,7 +4,6 @@
   "description": "TypeScript transformer converting types to fastest-validator schema.",
   "main": "index.js",
   "scripts": {
-    "prepare": "ts-patch install",
     "prepublish": "tsc",
     "pretest": "tsc",
     "build": "tsc && tsc --project tsconfig.test.json",
