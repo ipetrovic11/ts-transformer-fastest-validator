@@ -1,20 +1,15 @@
 {
   "compilerOptions": {
     "target": "es6",
+    "lib": ["es2019"],
     "module": "commonjs",
     "strict": true,
-    "suppressImplicitAnyIndexErrors": true,
+    "types": ["node", "jest"],
     "noEmitOnError": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "plugins": [
-      { "transform": "./transformer" }
-    ]
+    "plugins": [{ "transform": "./transformer" }]
   },
-  "include": [
-    "test/*.spec.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["test/*.spec.ts"],
+  "exclude": ["node_modules"]
 }

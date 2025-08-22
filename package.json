@@ -1,13 +1,15 @@
 {
   "name": "ts-transformer-fastest-validator",
-  "version": "1.13.0",
+  "version": "2.0.0",
   "description": "TypeScript transformer converting types to fastest-validator schema.",
   "main": "index.js",
   "scripts": {
-    "prepublish": "ttsc",
-    "pretest": "ttsc",
-    "build": "ttsc && ttsc --project tsconfig.test.json",
-    "test": "ttsc --project tsconfig.test.json && jest --coverage"
+    "prepare": "ts-patch install",
+    "prepublish": "tsc",
+    "pretest": "tsc",
+    "build": "tsc && tsc --project tsconfig.test.json",
+    "build:no-test": "tsc",
+    "test": "tsc --project tsconfig.test.json && jest --coverage"
   },
   "repository": {
     "type": "git",
@@ -34,11 +36,10 @@
   "homepage": "https://github.com/ipetrovic11/ts-transformer-fastest-validator",
   "devDependencies": {
     "@types/jest": "^27.5.0",
-    "@types/node": "^16.11.7",
+    "@types/node": "^18.11.18",
     "fastest-validator": "^1.12.0",
     "jest": "^28.0.3",
     "jest-cli": "^28.0.3",
-    "ttypescript": "^1.5.15",
-    "typescript": "^4.6.4"
+    "typescript": "5.6.3"
   }
 }
